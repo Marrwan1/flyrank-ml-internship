@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Content Refresh Opportunity Scoring — FlyRank ML Internship</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --border: #2a2d3a;
+    --accent: #6c63ff;
+    --accent2: #00d4aa;
+    --text: #e2e8f0;
+    --muted: #8892a4;
+    --heading: #ffffff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Georgia', serif;
+    line-height: 1.8;
+    font-size: 17px;
+  }
+  header {
+    background: linear-gradient(135deg, #1a1d27 0%, #0f1117 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 60px 20px 50px;
+    text-align: center;
+  }
+  header .tag {
+    display: inline-block;
+    background: var(--accent);
+    color: #fff;
+    font-family: monospace;
+    font-size: 12px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-bottom: 20px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  header h1 {
+    font-size: clamp(24px, 4vw, 40px);
+    color: var(--heading);
+    font-weight: 700;
+    max-width: 800px;
+    margin: 0 auto 16px;
+    line-height: 1.3;
+  }
+  header .subtitle {
+    color: var(--muted);
+    font-size: 15px;
+    font-family: sans-serif;
+  }
+  header .meta {
+    margin-top: 24px;
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    flex-wrap: wrap;
+    font-family: sans-serif;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  header .meta span { display: flex; align-items: center; gap: 6px; }
+  nav {
+    position: sticky;
+    top: 0;
+    background: rgba(15,17,23,0.95);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 20px;
+    z-index: 100;
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  nav a {
+    color: var(--muted);
+    text-decoration: none;
+    font-family: sans-serif;
+    font-size: 13px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    transition: all 0.2s;
+  }
+  nav a:hover { color: var(--accent); background: rgba(108,99,255,0.1); }
+  main { max-width: 820px; margin: 0 auto; padding: 0 20px 80px; }
+  section { padding: 56px 0 0; }
+  h2 {
+    font-size: 22px;
+    color: var(--heading);
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--accent);
+    display: inline-block;
+    font-family: sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+  }
+  h3 {
+    font-size: 17px;
+    color: var(--accent2);
+    margin: 28px 0 10px;
+    font-family: sans-serif;
+    font-weight: 600;
+  }
+  p { margin-bottom: 16px; }
+  .abstract-box {
+    background: var(--surface);
+    border-left: 4px solid var(--accent);
+    border-radius: 8px;
+    padding: 24px 28px;
+    margin-bottom: 12px;
+    font-style: italic;
+    color: #c8d0dc;
+  }
+  .metric-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 16px;
+    margin: 24px 0;
+  }
+  .metric-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 16px;
+    text-align: center;
+  }
+  .metric-card .value {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--accent);
+    font-family: sans-serif;
+    line-height: 1;
+  }
+  .metric-card .label {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: sans-serif;
+    margin-top: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-family: sans-serif;
+    font-size: 14px;
+  }
+  thead { background: var(--surface); }
+  th {
+    padding: 10px 14px;
+    text-align: left;
+    color: var(--muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-family: monospace;
+    font-weight: 600;
+  }
+  .badge-green  { background: rgba(0,212,170,0.15); color: #00d4aa; }
+  .badge-purple { background: rgba(108,99,255,0.15); color: #6c63ff; }
+  .badge-yellow { background: rgba(255,193,7,0.15);  color: #ffc107; }
+  .chart-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    margin: 24px 0;
+  }
+  .bar-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+    font-family: sans-serif;
+    font-size: 13px;
+  }
+  .bar-label { width: 180px; color: var(--muted); text-align: right; flex-shrink: 0; }
+  .bar-track { flex: 1; background: var(--border); border-radius: 4px; height: 22px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; display: flex; align-items: center; padding-left: 8px; font-size: 12px; color: #fff; font-weight: 600; transition: width 1s ease; }
+  .callout {
+    background: rgba(108,99,255,0.08);
+    border: 1px solid rgba(108,99,255,0.3);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 20px 0;
+    font-family: sans-serif;
+    font-size: 14px;
+  }
+  .callout strong { color: var(--accent); }
+  .warning {
+    background: rgba(255,193,7,0.08);
+    border: 1px solid rgba(255,193,7,0.3);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 20px 0;
+    font-family: sans-serif;
+    font-size: 14px;
+  }
+  .warning strong { color: #ffc107; }
+  ul, ol { padding-left: 24px; margin-bottom: 16px; }
+  li { margin-bottom: 8px; }
+  code {
+    font-family: monospace;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+    color: var(--accent2);
+  }
+  .repo-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 16px;
+    color: var(--accent);
+    text-decoration: none;
+    font-family: sans-serif;
+    font-size: 14px;
+    margin: 8px 4px;
+    transition: border-color 0.2s;
+  }
+  .repo-link:hover { border-color: var(--accent); }
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 20px;
+    text-align: center;
+    font-family: sans-serif;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="tag">Research Paper · FlyRank ML Internship</div>
+  <h1>Content Refresh Opportunity Scoring Using Search Console Signals</h1>
+  <div class="subtitle">A machine-learning approach to prioritising content refresh actions from GSC data</div>
+  <div class="meta">
+    <span>Marwan</span>
+    <span>Lane: Refresh / Content Opportunity Scoring</span>
+    <span>September 2026</span>
+    <span>79M rows · 104 clients</span>
+  </div>
+</header>
+
+<nav>
+  <a href="#abstract">Abstract</a>
+  <a href="#intro">Introduction</a>
+  <a href="#data">Data</a>
+  <a href="#methodology">Methodology</a>
+  <a href="#results">Results</a>
+  <a href="#limitations">Limitations</a>
+  <a href="#recommendations">Recommendations</a>
+  <a href="#reproducibility">Reproducibility</a>
+  <a href="#acknowledgments">Acknowledgments</a>
+</nav>
+
+<main>
+
+  <!-- ABSTRACT -->
+  <section id="abstract">
+    <h2>Abstract</h2>
+    <div class="abstract-box">
+      Content teams managing large websites face a prioritisation problem: which pages should be refreshed first?
+      This paper investigates whether Google Search Console signals — impressions, clicks, average position, CTR, and data coverage — can identify pages likely to gain clicks after a content refresh.
+      Using 79 million rows of pseudonymised production search data from the FlyRank internship warehouse, a Random Forest classifier was trained on March 2026 data and evaluated on April–May 2026, achieving ROC-AUC of 0.82 under a client-grouped validation split — a measured improvement over a hand-written rule baseline (AUC 0.64).
+      The model is presented as a decision-support tool: it surfaces a ranked queue of refresh candidates for human review, not an automated action trigger.
+      Impressions volume and data-coverage consistency were observed as the strongest directional signals; CTR and position, despite being the basis of the hand-written rule, contributed less under permutation importance on held-out data.
+    </div>
+  </section>
+
+  <!-- INTRODUCTION -->
+  <section id="intro">
+    <h2>Introduction</h2>
+    <p>
+      Large content websites accumulate pages that were once well-ranked but gradually lose organic traffic.
+      Identifying which pages to refresh — and in what order — is a time-constrained editorial decision.
+      Manual triage is slow; fully automated rules miss context.
+    </p>
+    <p>
+      This work asks: <em>can a model trained on Search Console signals rank refresh candidates better than a hand-written rule?</em>
+      The target is not prediction in the causal sense — we cannot observe whether a refresh caused growth.
+      Instead, we define a proxy label (click growth ≥ 20% month-over-month) and measure how well the model ranks true-positive pages above false positives relative to a rule baseline.
+    </p>
+    <p>
+      The approach follows FlyRank's internship research track: frame honestly, validate carefully, and deliver a human-reviewed playbook rather than an automated pipeline.
+    </p>
+  </section>
+
+  <!-- DATA -->
+  <section id="data">
+    <h2>Data</h2>
+
+    <h3>Source</h3>
+    <p>
+      FlyRank Internship Warehouse v20260703 — a pseudonymised snapshot of production search and analytics data.
+      All client identifiers, domain names, URLs, and query strings are salted-hashed; no client can be re-identified from the public outputs.
+    </p>
+
+    <div class="metric-grid">
+      <div class="metric-card"><div class="value">79M</div><div class="label">Total rows</div></div>
+      <div class="metric-card"><div class="value">104</div><div class="label">Clients</div></div>
+      <div class="metric-card"><div class="value">519K</div><div class="label">Content items</div></div>
+      <div class="metric-card"><div class="value">3.6M</div><div class="label">GSC-available rows (Mar 2026)</div></div>
+    </div>
+
+    <h3>Tables used</h3>
+    <table>
+      <thead><tr><th>Table</th><th>Grain</th><th>Role</th></tr></thead>
+      <tbody>
+        <tr><td><code>fact_content_daily_performance</code></td><td>date × client × content</td><td>Features and label source</td></tr>
+        <tr><td><code>dim_content</code></td><td>content item</td><td>Not used (no leakage-safe metadata needed)</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Windows</h3>
+    <ul>
+      <li>Feature window: <code>month=2026-03</code></li>
+      <li>Label window: <code>month=2026-04</code> (clicks in the next month)</li>
+      <li>Test label window: <code>month=2026-05</code></li>
+      <li>Final month (<code>2026-06</code>): sealed — never used for feature development</li>
+    </ul>
+
+    <h3>Exclusions</h3>
+    <ul>
+      <li>Rows where <code>gsc_data_available IS NOT TRUE</code> — no GSC signal landed</li>
+      <li>Pages with zero impressions in the feature month — no signal to learn from</li>
+      <li>GA4 columns — majority of clients in the sample had <code>NaN</code> GA4 values; GSC-only features were used</li>
+    </ul>
+  </section>
+
+  <!-- METHODOLOGY -->
+  <section id="methodology">
+    <h2>Methodology</h2>
+
+    <h3>Label definition</h3>
+    <p>
+      Binary label: did a page's total monthly clicks grow by ≥ 20% from the feature month to the label month?
+      This is a proxy — growth may be caused by content quality, seasonal demand, or algorithm updates.
+      The label captures "growth happened," not "a refresh caused it."
+    </p>
+
+    <h3>Features</h3>
+    <table>
+      <thead><tr><th>Feature</th><th>Construction</th><th>Knowable at decision time?</th></tr></thead>
+      <tbody>
+        <tr><td><code>gsc_impressions</code></td><td>SUM over feature month</td><td>Yes — past month total</td></tr>
+        <tr><td><code>gsc_clicks</code></td><td>SUM over feature month</td><td>Yes — past month total</td></tr>
+        <tr><td><code>gsc_avg_position</code></td><td>AVG over feature month</td><td>Yes — GSC ~3-day lag</td></tr>
+        <tr><td><code>ctr</code></td><td>clicks / impressions</td><td>Yes — derived from past data</td></tr>
+        <tr><td><code>days_with_data</code></td><td>COUNT DISTINCT report_date</td><td>Yes — past count</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Baseline (W04 hand-written rule)</h3>
+    <p>
+      Score = <code>(expected_ctr − actual_ctr) × gsc_impressions</code>, where expected CTR is a fixed lookup by position bucket (top-3: 0.48%, top-10: 0.35%, top-20: 0.28%, beyond-20: 0.13%).
+      Reason codes: <code>LOW_CTR_GOOD_POSITION</code> → REFRESH_TITLE_META; <code>HIGH_IMP_LOW_CTR</code> → REFRESH_CONTENT.
+    </p>
+
+    <h3>Model</h3>
+    <p>
+      Random Forest Classifier — 100 estimators, max depth 6, random state 42.
+      Chosen because the feature relationships are non-linear and the model produces calibrated probabilities for ranking.
+    </p>
+
+    <h3>Validation design</h3>
+    <p>
+      Two splits were compared to show the before/after effect of validation rigour:
+    </p>
+    <ul>
+      <li><strong>Time-aware split (W05):</strong> train on 2026-03 features, test on 2026-04 features. AUC 0.77.</li>
+      <li><strong>Client-grouped split (W06):</strong> 80% of clients in train, remaining 20% in test — no client seen in both. AUC 0.82. This is the honest number.</li>
+    </ul>
+
+    <h3>Leakage audit</h3>
+    <p>
+      All five features were verified as observable before the label window opens.
+      Feature-label correlations were checked — highest observed was 0.10 (days_with_data), consistent with a real but modest signal, not leakage.
+    </p>
+  </section>
+
+  <!-- RESULTS -->
+  <section id="results">
+    <h2>Results</h2>
+
+    <div class="metric-grid">
+      <div class="metric-card"><div class="value">0.64</div><div class="label">Baseline AUC (rule)</div></div>
+      <div class="metric-card"><div class="value">0.77</div><div class="label">RF AUC — time split</div></div>
+      <div class="metric-card"><div class="value">0.82</div><div class="label">RF AUC — client grouped</div></div>
+      <div class="metric-card"><div class="value">75,869</div><div class="label">Pages in queue</div></div>
+    </div>
+
+    <h3>Model vs Baseline</h3>
+    <div class="chart-container">
+      <div class="bar-row">
+        <div class="bar-label">W04 Baseline (rule)</div>
+        <div class="bar-track"><div class="bar-fill" style="width:64%;background:#8892a4;">0.6364</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">W05 Random Forest</div>
+        <div class="bar-track"><div class="bar-fill" style="width:77%;background:#6c63ff;">0.7701</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">W06 Client-grouped</div>
+        <div class="bar-track"><div class="bar-fill" style="width:82%;background:#00d4aa;">0.8216</div></div>
+      </div>
+    </div>
+
+    <h3>Permutation importance (test set)</h3>
+    <div class="chart-container">
+      <div class="bar-row">
+        <div class="bar-label">gsc_impressions</div>
+        <div class="bar-track"><div class="bar-fill" style="width:75%;background:#6c63ff;">0.071</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">days_with_data</div>
+        <div class="bar-track"><div class="bar-fill" style="width:54%;background:#6c63ff;">0.051</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">gsc_clicks</div>
+        <div class="bar-track"><div class="bar-fill" style="width:18%;background:#6c63ff;">0.002</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">gsc_avg_position</div>
+        <div class="bar-track"><div class="bar-fill" style="width:10%;background:#8892a4;">0.0004</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">ctr</div>
+        <div class="bar-track"><div class="bar-fill" style="width:8%;background:#8892a4;">0.0002</div></div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <strong>Key finding:</strong> Impressions volume and data-coverage consistency (days_with_data) are the strongest directional signals.
+      CTR and position — the basis of the hand-written rule — contributed near-zero importance under permutation analysis on held-out data.
+      This explains the ~0.18 AUC gap between the rule and the model.
+    </div>
+
+    <h3>Error analysis</h3>
+    <table>
+      <thead><tr><th>Error type</th><th>Count</th><th>Avg profile</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="badge badge-yellow">False Positive</span><br>Flagged but did not grow</td>
+          <td>292</td>
+          <td>780 impressions, position ~13, CTR 1.0% — moderate signal, no growth</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-purple">False Negative</span><br>Grew but was missed</td>
+          <td>35,595</td>
+          <td>2,429 impressions, very low CTR (0.2%), 25 days with data — large pages the model underscored</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="warning">
+      <strong>Note:</strong> The high false-negative count (35k) indicates the model is conservative.
+      Many pages that grew were not flagged. A lower decision threshold or recall-focused metric
+      would surface more of these — at the cost of more false positives for human reviewers.
+    </div>
+  </section>
+
+  <!-- LIMITATIONS -->
+  <section id="limitations">
+    <h2>Limitations</h2>
+    <ul>
+      <li>
+        <strong>Label does not capture causation.</strong>
+        Click growth may result from seasonal demand, algorithm updates, or competitor changes — not a content refresh.
+        The model identifies growth-likely pages, not refresh-caused-growth pages.
+      </li>
+      <li>
+        <strong>GSC-only features.</strong>
+        GA4 sessions and engagement signals were excluded due to high NaN rates across clients.
+        Adding GA4 signals for clients who have them connected may improve ranking quality.
+      </li>
+      <li>
+        <strong>Single-month feature window.</strong>
+        Features are aggregated over one month. Trend features (month-over-month change) were not included and may capture decay signals the current model misses.
+      </li>
+      <li>
+        <strong>High false-negative rate.</strong>
+        The model misses a large share of pages that do grow. It is better suited to precision-first triage (finding reliable candidates) than recall-first discovery (finding every opportunity).
+      </li>
+      <li>
+        <strong>No refresh event log.</strong>
+        The warehouse has no column recording when a page was actually updated. The label conflates organic growth with refresh-driven growth.
+      </li>
+    </ul>
+  </section>
+
+  <!-- RECOMMENDATIONS -->
+  <section id="recommendations">
+    <h2>Ranked Recommendations</h2>
+
+    <h3>Action playbook</h3>
+    <table>
+      <thead><tr><th>Reason code</th><th>Action</th><th>When to apply</th><th>Est. effort</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="badge badge-green">LOW_CTR_GOOD_POSITION</span></td>
+          <td>REFRESH_TITLE_META</td>
+          <td>Position 1–10, CTR below expected for that position</td>
+          <td>30–60 min</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-purple">HIGH_IMP_LOW_CTR</span></td>
+          <td>REFRESH_CONTENT</td>
+          <td>Impressions ≥ 1000, CTR below expected at any position</td>
+          <td>2–4 hours</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-yellow">MONITOR</span></td>
+          <td>No action</td>
+          <td>Insufficient signal — revisit next month</td>
+          <td>—</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Human review rules</h3>
+    <ul>
+      <li>Inspect every page in the top 50 before any action is taken.</li>
+      <li>Verify search intent manually before rewriting any REFRESH_CONTENT page.</li>
+      <li>Do not act on the score alone — read the page.</li>
+    </ul>
+
+    <h3>No-go list — do not automate</h3>
+    <ul>
+      <li>Pages with fewer than 3 clicks in the feature month</li>
+      <li>Pages published less than 60 days ago</li>
+      <li>Pages with a pending client redesign or migration</li>
+      <li>Any title or content change without explicit client approval</li>
+      <li>Automated publishing of any kind</li>
+    </ul>
+
+    <h3>Monitoring triggers</h3>
+    <ul>
+      <li>Retrain if AUC on the latest month drops below 0.65</li>
+      <li>Retrain if positive label rate shifts more than 5 percentage points from 16.2%</li>
+      <li>Retrain if GA4 data becomes available for more clients</li>
+      <li>Re-run scoring monthly on the latest closed month</li>
+    </ul>
+  </section>
+
+  <!-- REPRODUCIBILITY -->
+  <section id="reproducibility">
+    <h2>Reproducibility</h2>
+    <p>All notebooks are executed and committed. Anyone with a HuggingFace read token and access to the FlyRank internship warehouse can reproduce every number in this paper by running the notebooks in order.</p>
+
+    <a class="repo-link" href="https://github.com/Marrwan1/flyrank-ml-internship" target="_blank">GitHub Repository</a>
+    <a class="repo-link" href="https://github.com/Marrwan1/flyrank-ml-internship/blob/main/work/notebooks/w03_data_contract.ipynb" target="_blank">W03 — Data Contract</a>
+    <a class="repo-link" href="https://github.com/Marrwan1/flyrank-ml-internship/blob/main/work/notebooks/w04_baseline_score.ipynb" target="_blank">W04 — Baseline Score</a>
+    <a class="repo-link" href="https://github.com/Marrwan1/flyrank-ml-internship/blob/main/work/notebooks/w05_model.ipynb" target="_blank">W05 — Model</a>
+    <a class="repo-link" href="https://github.com/Marrwan1/flyrank-ml-internship/blob/main/work/notebooks/w06_validation_audit.ipynb" target="_blank">W06 — Validation Audit</a>
+    <a class="repo-link" href="https://github.com/Marrwan1/flyrank-ml-internship/blob/main/work/notebooks/w07_action_playbook.ipynb" target="_blank">W07 — Action Playbook</a>
+
+    <h3>Run order</h3>
+    <ol>
+      <li>Request access to <code>FlyRank/internship-warehouse</code> on HuggingFace</li>
+      <li>Store your token as <code>HF_TOKEN</code> in Colab Secrets</li>
+      <li>Run notebooks W03 → W07 in order</li>
+      <li>Outputs write to <code>work/outputs/</code> — regenerated on every run</li>
+    </ol>
+  </section>
+
+  <!-- ACKNOWLEDGMENTS -->
+  <section id="acknowledgments">
+    <h2>Acknowledgments &amp; Data Credit</h2>
+    <p>
+      Built on the FlyRank ML Internship dataset — pseudonymised production search and analytics data
+      provided for research and education purposes only.
+      Data source: <a href="https://flyrank.ai" target="_blank" style="color:var(--accent);">flyrank.ai</a>.
+    </p>
+    <p>
+      No client names, domain names, URLs, or query strings appear in any public output.
+      All numbers in this paper are aggregated or anonymised.
+    </p>
+    <p style="color:var(--muted);font-size:14px;margin-top:8px;">
+      Data use terms: anonymised research and education use only · no redistribution of raw data ·
+      no client-identifying data in any public output.
+    </p>
+  </section>
+
+</main>
+
+<footer>
+  <p>Content Refresh Opportunity Scoring · FlyRank ML Internship · September 2026</p>
+  <p style="margin-top:8px;">Built on the <a href="https://flyrank.ai" target="_blank">FlyRank</a> internship dataset · <a href="https://github.com/Marrwan1/flyrank-ml-internship" target="_blank">GitHub</a></p>
+</footer>
+
+</body>
+</html>
